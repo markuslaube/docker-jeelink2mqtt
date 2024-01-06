@@ -4,10 +4,17 @@ import serial
 import sys
 import json,requests
 import paho.mqtt.client as mqtt
+import os
+import time
 
 #Einlesen der Konfiguration
 with open('/app/config.json') as json_data_file:
   data = json.load(json_data_file)
+
+#Erstelle Verbindung zum socat Server, wenn socat = true
+if (data["socat"] == "true"):
+  os.system("/usr/bin/socat pty,link=" + data["tty-port"] + ",ignoreof,waitslave tcp:" + data["remote-ip"] + ":" + data["remote-port"] + " &")
+  time.sleep(int(data["sleep"]))
 
 #Oeffnen des seriellen Ports zum Jeelink
 ser_jee = serial.Serial(
@@ -66,18 +73,31 @@ while True:
 
         pl_ziel='{'
 
-        # Temperatur dekodieren
-        temp ="{:.2f}".format((float(pl_items[4])*256 + float(pl_items[5]) - 1000) / 10 )
-        pl_ziel=pl_ziel + '"temperature":' + temp
+        # Temperatur dekodieren, jetzt mit Fehlerbehandlung - ich haber immer wieder fehlerhafte werte ...
+        try:
+          temp ="{:.2f}".format((float(pl_items[4])*256 + float(pl_items[5]) - 1000) / 10 )
+        except:
+          temp = 377
 
-        # Feuchtigkeit dekodieren, falls im Datensatz vorhanden
-        humid =divmod(float(pl_items[6]),128)[1]
+        if (str(temp) < str(377)):
+          pl_ziel=pl_ziel + '"temperature":' + temp
+
+        # Feuchtigkeit dekodieren, falls im Datensatz vorhanden, jetzt mit Fehlerbehandlung - ich haber immer wieder fehlerhafte werte ...
+        try:
+          humid =divmod(float(pl_items[6]),128)[1]
+        except:
+          humid = 106
+
         if (humid != 106):
           pl_ziel=pl_ziel + ','
           pl_ziel=pl_ziel + '"humidity":' + "{:.0f}".format(humid)
 
         # Batterie-OK dekodieren
-        batt =divmod(float(pl_items[6]),128)[0]
+        try:
+          batt =divmod(float(pl_items[6]),128)[0]
+        except:
+          batt = 1
+
         if (batt == 0):
           pl_ziel=pl_ziel + ',"battery":100'
         else:
