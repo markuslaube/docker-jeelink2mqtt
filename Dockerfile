@@ -1,8 +1,9 @@
-FROM python:3
+FROM python:3.9-slim-bookworm
 RUN pip install paho-mqtt
 RUN pip install pyserial
 RUN pip install requests
+RUN pip install pylacrosse
+RUN apt-get -y update && apt-get -y install socat
 WORKDIR /app
-COPY no_app /no_app
 ENTRYPOINT ["python"]
-CMD ["/no_app/none.py"]
+CMD ["/app/none.py"]
