@@ -5,7 +5,6 @@ import sys
 import json,requests
 import paho.mqtt.client as mqtt
 import os
-import time
 
 #Einlesen der Konfiguration
 with open('/app/config.json') as json_data_file:
